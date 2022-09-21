@@ -1,14 +1,22 @@
 package ru.kata.spring.boot_security.demo.model;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import ru.kata.spring.boot_security.demo.service.UserServiceImpl;
+
 import javax.persistence.*;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Entity
-@Table(name = "users")
-public class User {
+@Table(name = "users", uniqueConstraints = {
+        @UniqueConstraint(name = "uc_user_username", columnNames = {"username"})
+})
+public class User implements UserDetails {
+    private static final Logger log = LoggerFactory.getLogger(User.class);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,11 +26,12 @@ public class User {
     @Version
     private int version;
 
-    @Column(name = "firstName")
-    private String firstName;
+    @Column(name = "username")
+    private String username;
 
-    @Column(name = "secondName")
-    private String secondName;
+    @Column(name = "password")
+    private String password;
+
     private int age;
 
     @OneToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH})
@@ -31,42 +40,77 @@ public class User {
     public User() {
     }
 
-    public User(String firstName, String secondName, int age) {
-        this.firstName = firstName;
+    public User(String username, String password, int age) {
+        this.username = username;
         this.age = age;
-        this.secondName = secondName;
+        this.password = password;
+    }
+
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
     }
 
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public void setAge(int age) {
         this.age = age;
     }
 
-    public void setSecondName(String secondName) {
-        this.secondName = secondName;
+    public void setPassword(String secondName) {
+        this.password = secondName;
     }
 
     public Long getId() {
         return id;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public String getUsername() {
+        return username;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 
     public int getAge() {
         return age;
     }
 
-    public String getSecondName() {
-        return secondName;
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        log.debug("getAuthorities: ->" + mapRolesToAuthorities(roles));
+        return mapRolesToAuthorities(roles);
+    }
+
+    private Collection<? extends GrantedAuthority> mapRolesToAuthorities(Collection<Role> roles) {
+        return roles.stream().map(r -> new SimpleGrantedAuthority(r.getName())).collect(Collectors.toList());
+    }
+
+    public String getPassword() {
+        return password;
     }
 
     public Set<Role> getRoles() {
@@ -75,13 +119,14 @@ public class User {
 
     @Override
     public String toString() {
-        return String.format("User{id=%d, firstName='%s', secondName='%s', age=%d, roles=%s}",
-                id, firstName, secondName, age, Arrays.toString(roles.toArray()));
+        return String.format("User{id=%d, username='%s', password='%s', age=%d, roles=%s}",
+                id, username, password, age, Arrays.toString(roles.toArray()));
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, firstName, secondName, age, roles);
+        return
+                Objects.hash(id, username, password, age, roles);
     }
 
     @Override
@@ -92,12 +137,12 @@ public class User {
         if (this == o) {
             return true;
         }
-        return (firstName.equals(((User) o).getFirstName())
-                && secondName.equals(((User) o).getSecondName())
+        return (username.equals(((User) o).getUsername())
+                && password.equals(((User) o).getPassword())
                 && age == ((User) o).getAge()
                 // compare two set
-                && (!roles.containsAll(((User) o).getRoles()))
-                && (!((User) o).getRoles().containsAll(roles))
+                && roles.containsAll(((User) o).getRoles())
+                && ((User) o).getRoles().containsAll(roles)
         );
     }
 }

@@ -1,6 +1,9 @@
 package ru.kata.spring.boot_security.demo.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,10 +15,10 @@ import org.slf4j.LoggerFactory;
 import ru.kata.spring.boot_security.demo.model.User;
 import ru.kata.spring.boot_security.demo.model.UserRepository;
 
-@Service //("userService")
+@Service("userService")
 @Repository
 @Transactional
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl implements UserService, UserDetailsService {
     private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private UserRepository userRepository;
@@ -36,9 +39,9 @@ public class UserServiceImpl implements UserService {
     public List<User> list(int count) {
         log.debug("list: <- count = " + count);
 
-        Iterator<User> it  = userRepository.findAll().iterator();
+        Iterator<User> it = userRepository.findAll().iterator();
         List<User> list = new ArrayList<>();
-        for (int i=0; it.hasNext() && i < count; i++) {
+        for (int i = 0; it.hasNext() && i < count; i++) {
             User user = it.next();
             list.add(user);
         }
@@ -96,8 +99,8 @@ public class UserServiceImpl implements UserService {
             return null;
         }
         if (user != null) {
-            u.setFirstName(user.getFirstName());
-            u.setSecondName(user.getSecondName());
+            u.setUsername(user.getUsername());
+            u.setPassword(user.getPassword());
             u.setAge(user.getAge());
             u.setRoles(user.getRoles());
             u = userRepository.save(u);
@@ -105,5 +108,16 @@ public class UserServiceImpl implements UserService {
 
         log.debug("update: -> " + u);
         return u;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        log.debug(String.format("loadUserByUsername: <- username='%s'", username));
+        User user = userRepository.findUserByUsername(username);
+        if (user == null) {
+            throw new UsernameNotFoundException("User with username='" + username + "' not found.");
+        }
+        log.debug("loadUserByUsername: -> " + user);
+        return user;
     }
 }
