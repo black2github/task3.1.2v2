@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
 import ru.kata.spring.boot_security.demo.service.UserService;
@@ -20,6 +21,9 @@ public class SpringBootSecurityDemoApplication {
 	@Autowired
 	private UserService userService;
 
+	@Autowired
+	PasswordEncoder bCryptPasswordEncoder;
+
 	@PostConstruct
 	public void init() {
 		for (int i=0; i < 5; i++) {
@@ -29,11 +33,13 @@ public class SpringBootSecurityDemoApplication {
 
 		Role role1 = new Role("ROLE_USER");
 		Role role2 = new Role("ROLE_ADMIN");
-		User user = new User("admin", "$2a$12$GMeJU/8AAlm6yTmpWX3fv.aj7DwV0u1Hi9p8ITqsBaFOechIXei6m");
+		// User user = new User("admin", "$2a$12$GMeJU/8AAlm6yTmpWX3fv.aj7DwV0u1Hi9p8ITqsBaFOechIXei6m");
+		User user = new User("admin", bCryptPasswordEncoder.encode("admin"));
 		user.setRoles(new LinkedHashSet<Role>(Arrays.asList(role1, role2)));
 		user = userService.create(user);
 
-		user = new User("user", "$2a$12$SuE6g3JoVgCM.9IBEM6tuO/XZrrq22e9Ztd1uRBUtXuyVtk5isVlS");
+		//user = new User("user", "$2a$12$SuE6g3JoVgCM.9IBEM6tuO/XZrrq22e9Ztd1uRBUtXuyVtk5isVlS");
+		user = new User("user", bCryptPasswordEncoder.encode("user"));
 		user.getRoles().add(new Role("ROLE_USER"));
 		userService.create(user);
 	}
